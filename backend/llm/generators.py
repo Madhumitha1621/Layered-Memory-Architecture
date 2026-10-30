@@ -15,6 +15,9 @@ from .prompts import TITLE_PROMPT
 
 logger = logging.getLogger(__name__)
 
+# Shown to clients on LLM failure; raw exceptions can leak provider details.
+GENERATION_ERROR_MESSAGE = "The model failed to generate a response. Please try again."
+
 
 def generate_response(
     user_query: str,
@@ -33,29 +36,29 @@ def generate_response(
     thread_context: dict | None = None,
     research_context: dict | None = None,
 ) -> str:
-    """Generate a complete (non-streaming) response."""
-    try:
-        messages = build_messages(
-            user_query,
-            chat_history=chat_history,
-            curated_history=curated_history,
-            rag_context=rag_context,
-            profile_context=profile_context,
-            similar_qa_context=similar_qa_context,
-            privacy_mode=privacy_mode,
-            greeting_name=greeting_name,
-            behavior_context=behavior_context,
-            meta_instruction=meta_instruction,
-            personality_mode=personality_mode,
-            precision_mode=precision_mode,
-            response_length_hint=response_length_hint,
-            thread_context=thread_context,
-            research_context=research_context,
-        )
-        return completion(messages)
-    except Exception as e:
-        logger.error("Generation error: %s", e)
-        return f"I apologize, but I encountered an error: {e}"
+    """Generate a complete (non-streaming) response.
+
+    Raises on LLM failure so callers never mistake an error for a reply
+    (and persist it as one).
+    """
+    messages = build_messages(
+        user_query,
+        chat_history=chat_history,
+        curated_history=curated_history,
+        rag_context=rag_context,
+        profile_context=profile_context,
+        similar_qa_context=similar_qa_context,
+        privacy_mode=privacy_mode,
+        greeting_name=greeting_name,
+        behavior_context=behavior_context,
+        meta_instruction=meta_instruction,
+        personality_mode=personality_mode,
+        precision_mode=precision_mode,
+        response_length_hint=response_length_hint,
+        thread_context=thread_context,
+        research_context=research_context,
+    )
+    return completion(messages)
 
 
 def generate_response_stream(
@@ -80,6 +83,7 @@ def generate_response_stream(
     Protocol::
 
         0:"token"\\n        text delta
+        3:"message"\\n      error part (generation failed; not part of the reply)
         e:{"finishReason":"stop"}\\n   finish event
         d:{"finishReason":"stop"}\\n   done signal
     """
@@ -107,7 +111,7 @@ def generate_response_stream(
         yield f'd:{json.dumps({"finishReason": "stop"})}\n'
     except Exception as e:
         logger.error("Streaming error: %s", e)
-        yield f'0:{json.dumps(f"Error: {e}")}\n'
+        yield f'3:{json.dumps(GENERATION_ERROR_MESSAGE)}\n'
         yield f'e:{json.dumps({"finishReason": "error"})}\n'
         yield f'd:{json.dumps({"finishReason": "error"})}\n'
 

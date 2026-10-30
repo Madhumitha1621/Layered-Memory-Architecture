@@ -53,6 +53,8 @@ e:{"finishReason":"stop"}
 d:{"finishReason":"stop"}
 ```
 
+If generation fails, the stream emits an error part `3:"message"` followed by `e:`/`d:` with `"finishReason":"error"`, and nothing is persisted. POST /chat returns HTTP 502 in the same situation.
+
 ### POST /chat/regenerate
 Delete last assistant message and regenerate. Request: `{"conversation_id": "uuid", "user_id": "default"}`.
 

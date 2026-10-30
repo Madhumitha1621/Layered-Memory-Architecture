@@ -689,6 +689,7 @@ Both generation functions accept the same parameters: `user_query`, `chat_histor
 ```
 0:"token"                              ← text delta
 0:" next token"                        ← text delta
+3:"message"                            ← error part (only on failure; not persisted)
 e:{"finishReason":"stop"}              ← finish event
 d:{"finishReason":"stop"}              ← done signal
 ```

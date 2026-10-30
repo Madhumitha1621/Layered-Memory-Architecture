@@ -157,6 +157,18 @@ export function useChatStream() {
                   ),
                 );
               } catch { /* skip malformed */ }
+            } else if (prefix === '3:') {
+              // Error part — generation failed server-side
+              let msg = 'Generation failed';
+              try { msg = JSON.parse(payload); } catch { /* keep default */ }
+              setError(msg);
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === asstId
+                    ? { ...m, content: m.content ? `${m.content}\n\n⚠ ${msg}` : `⚠ ${msg}` }
+                    : m,
+                ),
+              );
             } else if (prefix === '8:') {
               // Annotation (array of objects)
               try {
