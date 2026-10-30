@@ -2,7 +2,7 @@
 
 ## Connection Management
 
-The database layer uses psycopg2.pool.SimpleConnectionPool. Configuration from settings.py — DATABASE_URL overrides individual POSTGRES_* settings. Pool initialized lazily via _get_pool(). Min: DB_POOL_MIN (2). Max: DB_POOL_MAX (10).
+The database layer uses psycopg2.pool.ThreadedConnectionPool. Configuration from settings.py — DATABASE_URL overrides individual POSTGRES_* settings. Pool initialized lazily via _get_pool(). Min: DB_POOL_MIN (2). Max: DB_POOL_MAX (10).
 
 init_db() creates all 9 tables using CREATE TABLE IF NOT EXISTS plus indexes. Runs migrations for columns added after initial schema. Returns True on success, False if unreachable. If False, application runs in in-memory mode (no persistence).
 

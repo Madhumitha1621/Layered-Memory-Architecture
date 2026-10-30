@@ -158,7 +158,7 @@ All settings live in `backend/settings.py` as a frozen dataclass, loaded from en
 |---|---|---|---|
 | `RETRIEVAL_K` | **4** | `RETRIEVAL_K` | Default number of knowledge base docs to retrieve |
 | `QA_K` | **4** | `QA_K` | Default number of cross-conv Q&A pairs to retrieve |
-| `QA_MIN_SIMILARITY` | **0.65** | `QA_MIN_SIMILARITY` | Floor for cross-conv Q&A cosine similarity |
+| `QA_MIN_SIMILARITY` | **0.72** | `QA_MIN_SIMILARITY` | Floor for cross-conv Q&A cosine similarity |
 
 ### History Settings
 
@@ -176,7 +176,7 @@ All settings live in `backend/settings.py` as a frozen dataclass, loaded from en
 | `TOPIC_DECAY_ALPHA` | **0.2** | `TOPIC_DECAY_ALPHA` | EMA alpha for conversation-level topic vector |
 | `RECENCY_WINDOW` | **6** | `RECENCY_WINDOW` | Number of recent messages always included |
 | `SEMANTIC_K` | **3** | `SEMANTIC_K` | Older messages to retrieve by similarity |
-| `SIMILARITY_THRESHOLD` | **0.65** | `SIMILARITY_THRESHOLD` | Floor for semantic history retrieval |
+| `SIMILARITY_THRESHOLD` | **0.70** | `SIMILARITY_THRESHOLD` | Floor for semantic history retrieval |
 
 ### Behavior Engine Settings
 
@@ -478,7 +478,7 @@ User sends message → POST /chat/stream
 
 **Step 9: History Pruning**
 - Always includes last `RECENCY_WINDOW` (6) messages
-- If intent is `continuation` and there are more messages beyond the window, retrieves `SEMANTIC_K` (3) older messages with cosine similarity ≥ `SIMILARITY_THRESHOLD` (0.65)
+- If intent is `continuation` and there are more messages beyond the window, retrieves `SEMANTIC_K` (3) older messages with cosine similarity ≥ `SIMILARITY_THRESHOLD` (0.70)
 
 **Step 10: Selective Retrieval**
 - **RAG docs**: calls `vector_store.search(query, k=policy.rag_k, min_similarity=policy.rag_min_similarity)` if `policy.inject_rag` is true

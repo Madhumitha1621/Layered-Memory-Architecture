@@ -269,7 +269,7 @@ Intent-based rules:
 **Purpose:** PostgreSQL + pgvector handles ALL storage needs in a single database. No FAISS, no separate vector DB.
 
 **Connection management:**
-- `SimpleConnectionPool(min=2, max=10)` — psycopg2 connection pooling
+- `ThreadedConnectionPool(min=2, max=10)` — psycopg2 connection pooling
 - `get_connection()` / `put_connection(conn)` — pooled checkout/return
 - `put_connection` defensively rolls back dirty connections before returning to pool
 

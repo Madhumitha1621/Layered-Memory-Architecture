@@ -74,7 +74,7 @@ Settings are read from environment variables at startup via python-dotenv. All v
 
 **POSTGRES_HOST** (default: "localhost"), **POSTGRES_PORT** (default: 55432), **POSTGRES_DB** (default: "chatapp"), **POSTGRES_USER** (default: "root"), **POSTGRES_PASSWORD** (default: "password") — Individual connection settings, used when DATABASE_URL is empty.
 
-**DB_POOL_MIN** (default: 2) — Minimum connections in psycopg2 SimpleConnectionPool.
+**DB_POOL_MIN** (default: 2) — Minimum connections in psycopg2 ThreadedConnectionPool.
 
 **DB_POOL_MAX** (default: 10) — Maximum connections.
 

@@ -238,13 +238,13 @@ def _cmd_memory_inspect(args):
 
 def _cmd_memory_query(args):
     """Cross-thread semantic search over insights and concepts."""
-    query_db = _ensure_db()
-    from embeddings import get_query_embedding
-
     q = args.query_text
     if not q:
         logger.error("Usage: python cli.py memory query \"your search text\"")
         sys.exit(1)
+
+    query_db = _ensure_db()
+    from embeddings import get_query_embedding
 
     embedding = get_query_embedding(q)
     k = getattr(args, "k", 10)

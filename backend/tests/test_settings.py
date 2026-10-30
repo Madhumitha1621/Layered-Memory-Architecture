@@ -46,7 +46,7 @@ class TestSettingsDefaults:
         from settings import settings
         assert settings.RETRIEVAL_K == 4
         assert settings.QA_K == 4
-        assert settings.QA_MIN_SIMILARITY == pytest.approx(0.65)
+        assert settings.QA_MIN_SIMILARITY == pytest.approx(0.72)
 
     def test_pipeline_defaults(self):
         from settings import settings

@@ -166,6 +166,8 @@ def search_with_scores(
             )
             cos_map = {text: sim for text, sim in vector_lookup}
             results = [(text, cos_map.get(text, 0.0)) for text, _score in results]
+            # BM25-only hits bypass the vector threshold inside hybrid search
+            results = [(text, sim) for text, sim in results if sim >= min_similarity]
 
         return results
     else:

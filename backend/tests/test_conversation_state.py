@@ -88,6 +88,28 @@ class TestStateCache:
         retrieved = get_or_create_state("conv-2")
         assert retrieved.message_count == 10
 
+    def test_concurrent_eviction_is_safe(self):
+        import threading
+        import conversation_state
+
+        errors = []
+
+        def worker(n):
+            try:
+                for i in range(300):
+                    get_or_create_state(f"t{n}-{i}")
+            except Exception as e:  # pragma: no cover - only on regression
+                errors.append(e)
+
+        threads = [threading.Thread(target=worker, args=(n,)) for n in range(8)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert errors == []
+        assert len(_state_cache) <= conversation_state._MAX_CACHE_SIZE
+
 
 class TestStateTracker:
     """StateTracker update + detection tests."""

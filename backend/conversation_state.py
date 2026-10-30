@@ -20,6 +20,7 @@ Public API:
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from dataclasses import dataclass, field, asdict
 
@@ -91,6 +92,7 @@ class ConversationState:
 
 _state_cache: dict[str, ConversationState] = {}
 _MAX_CACHE_SIZE = 200
+_cache_lock = threading.Lock()
 
 
 def get_or_create_state(conversation_id: str) -> ConversationState:
@@ -98,26 +100,28 @@ def get_or_create_state(conversation_id: str) -> ConversationState:
 
     DB persistence is handled separately via save_state_to_db().
     """
-    if conversation_id in _state_cache:
-        return _state_cache[conversation_id]
+    with _cache_lock:
+        if conversation_id in _state_cache:
+            return _state_cache[conversation_id]
 
-    state = ConversationState(
-        conversation_start=time.time(),
-        last_update=time.time(),
-    )
-    _evict_if_needed()
-    _state_cache[conversation_id] = state
-    return state
+        state = ConversationState(
+            conversation_start=time.time(),
+            last_update=time.time(),
+        )
+        _evict_if_needed()
+        _state_cache[conversation_id] = state
+        return state
 
 
 def set_state(conversation_id: str, state: ConversationState) -> None:
     """Store/update state in cache."""
-    _evict_if_needed()
-    _state_cache[conversation_id] = state
+    with _cache_lock:
+        _evict_if_needed()
+        _state_cache[conversation_id] = state
 
 
 def _evict_if_needed() -> None:
-    """LRU-style eviction when cache exceeds max size."""
+    """LRU-style eviction when cache exceeds max size. Caller holds _cache_lock."""
     if len(_state_cache) >= _MAX_CACHE_SIZE:
         # Evict the oldest-updated state
         oldest_cid = min(_state_cache, key=lambda k: _state_cache[k].last_update)

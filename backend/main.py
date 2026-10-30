@@ -104,7 +104,8 @@ _allowed_origins = _raw_origins if _raw_origins else ["*"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
-    allow_credentials=True,
+    # Credentialed requests from any origin would let any site read user data
+    allow_credentials="*" not in _allowed_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -497,6 +498,7 @@ def run_pipeline(request: ChatRequest) -> PipelineResult:
             similar_queries = query_db.retrieve_similar_queries(
                 query_embedding, k=decision.qa_k, conversation_id=conv_id,
                 current_tags=query_tags, min_similarity=decision.qa_min_similarity,
+                user_id=request.user_id,
             )
             if similar_queries:
                 lines = [
@@ -678,8 +680,7 @@ def persist_after_response(p: PipelineResult, response_text: str):
             # Research extraction: insights + concepts (async-safe, non-blocking)
             if runtime_config.research_enabled:
                 try:
-                    from llm.client import completion as _completion
-                    insights = extract_insights(
+                    extract_insights(
                         p.query, response_text,
                         conversation_id=p.conversation_id,
                         thread_id=p.active_thread_id or None,
@@ -966,8 +967,6 @@ def retrieval_test(req: RetrievalTestRequest):
     Used by the retrieval quality A/B experiment to measure pure retrieval
     metrics without the latency/cost of LLM generation.
     """
-    from embeddings import get_query_embedding
-    query_embedding = get_query_embedding(req.query)
     docs_with_scores = vector_store.search_with_scores(
         req.query,
         k=req.k,

@@ -64,9 +64,9 @@ class ContextFeatures:
     is_followup: bool = False
     is_profile_statement: bool = False
     is_profile_question: bool = False
-    topic_similarity: Optional[float] = None
+    topic_similarity: float | None = None
     has_profile_data: bool = False
-    profile_name: Optional[str] = None
+    profile_name: str | None = None
     conversation_length: int = 0
     structural_followup_score: float = 0.0  # 0.0-1.0 structural continuation signal
 

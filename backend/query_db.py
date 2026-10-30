@@ -7,10 +7,11 @@ Single database for all storage needs:
   - document_chunks                — knowledge base vector store (pgvector)
   - conversations.topic_embedding  — rolling topic anchor per conversation
 
-Connection pooling via psycopg2 SimpleConnectionPool.
+Connection pooling via psycopg2 ThreadedConnectionPool.
 DATABASE_URL env var takes priority over individual POSTGRES_* vars.
 """
 import math
+import threading
 import uuid
 import logging
 from datetime import datetime, timezone
@@ -63,18 +64,23 @@ else:
         "password": settings.POSTGRES_PASSWORD,
     }
 
-# Connection pool — replaces individual get_connection() calls
-_pool: pool.SimpleConnectionPool | None = None
+# Connection pool — replaces individual get_connection() calls.
+# ThreadedConnectionPool is required: the pool is shared by request threads,
+# background workers, and run_pipeline's parallel fetches.
+_pool: pool.ThreadedConnectionPool | None = None
+_pool_lock = threading.Lock()
 
 
-def _get_pool() -> pool.SimpleConnectionPool:
+def _get_pool() -> pool.ThreadedConnectionPool:
     global _pool
     if _pool is None or _pool.closed:
-        _pool = pool.SimpleConnectionPool(
-            minconn=settings.DB_POOL_MIN,
-            maxconn=settings.DB_POOL_MAX,
-            **DB_CONFIG,
-        )
+        with _pool_lock:
+            if _pool is None or _pool.closed:
+                _pool = pool.ThreadedConnectionPool(
+                    minconn=settings.DB_POOL_MIN,
+                    maxconn=settings.DB_POOL_MAX,
+                    **DB_CONFIG,
+                )
     return _pool
 
 
@@ -562,8 +568,8 @@ def _recency_score(ts):
 
 
 def retrieve_similar_queries(query_embedding, k=5, conversation_id=None,
-                             current_tags=None, min_similarity=0.25):
-    """Retrieve semantically similar past Q&A across ALL conversations.
+                             current_tags=None, min_similarity=0.25, user_id="public"):
+    """Retrieve semantically similar past Q&A across the user's conversations.
     
     min_similarity: threshold below which results are discarded.
     Prevents injecting irrelevant context when nothing good matches.
@@ -579,9 +585,10 @@ def retrieve_similar_queries(query_embedding, k=5, conversation_id=None,
                    1 - (embedding <=> %s::vector) AS similarity,
                    conversation_id
             FROM user_queries
+            WHERE user_id = %s
             ORDER BY embedding <=> %s::vector
             LIMIT %s;
-        """, (emb, emb, max(k * 4, 16)))
+        """, (emb, user_id, emb, max(k * 4, 16)))
 
         results = cur.fetchall()
         cur.close()

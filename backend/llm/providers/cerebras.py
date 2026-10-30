@@ -56,6 +56,8 @@ class CerebrasProvider(LLMProvider):
             stream=True,
         )
         for chunk in stream:
+            if not chunk.choices:  # type: ignore[union-attr]
+                continue
             delta = chunk.choices[0].delta  # type: ignore[union-attr]
             if delta and delta.content:
                 yield delta.content  # type: ignore[misc]
