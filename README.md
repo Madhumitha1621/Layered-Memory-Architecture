@@ -576,6 +576,7 @@ cd frontend && npm install && npm run dev    # → localhost:5173
 **358 tests** · Pure unit tests · Zero database or LLM calls
 
 ```bash
+pip install -e ".[dev]"        # pytest, httpx, ruff
 python -m pytest backend/tests/ -v
 ```
 
