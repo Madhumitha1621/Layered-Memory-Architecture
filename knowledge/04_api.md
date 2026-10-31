@@ -116,8 +116,8 @@ Add entry. Request: `{"key": "name", "value": "Alex", "category": "personal", "u
 ### PUT /profile/{entry_id}
 Update entry by id.
 
-### DELETE /profile/{entry_id}
-Delete entry by id.
+### DELETE /profile/{entry_id}?user_id=default
+Delete entry by id. Only deletes an entry owned by `user_id`; returns 404 otherwise.
 
 ## System Endpoints (2)
 

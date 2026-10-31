@@ -940,12 +940,12 @@ def update_profile(entry_id: int, req: ProfileEntryRequest):
 
 
 @app.delete("/profile/{entry_id}")
-def delete_profile_entry(entry_id: int):
+def delete_profile_entry(entry_id: int, user_id: str = settings.DEFAULT_USER_ID):
     if not DB_ENABLED:
         raise HTTPException(503, "Database not available")
-    ok = query_db.delete_profile_entry(entry_id)
+    ok = query_db.delete_profile_entry(entry_id, user_id=user_id)
     if not ok:
-        raise HTTPException(500, "Failed to delete profile entry")
+        raise HTTPException(404, "Profile entry not found")
     return {"deleted": True}
 
 
