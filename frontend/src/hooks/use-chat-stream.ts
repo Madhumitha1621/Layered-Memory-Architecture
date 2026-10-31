@@ -34,6 +34,9 @@ export function useChatStream() {
   const [streamingId, setStreamingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // Conversation id just created by send(): its messages live only in local
+  // state until the stream finishes, so the load effect must not overwrite them.
+  const skipLoadRef = useRef<string | null>(null);
 
   const {
     conversationId,
@@ -53,20 +56,24 @@ export function useChatStream() {
   /* ── Load persisted messages when the active conversation changes ────── */
   useEffect(() => {
     if (conversationId) {
-      api
-        .getMessages(conversationId)
-        .then(({ messages: saved }) => {
-          setMessages(
-            saved.map((m, i) => ({
-              id: String(m.id ?? `hist-${i}`),
-              role: m.role as 'user' | 'assistant',
-              content: m.content,
-              annotations: [],
-              createdAt: m.created_at ? new Date(m.created_at) : new Date(),
-            })),
-          );
-        })
-        .catch(console.error);
+      if (skipLoadRef.current === conversationId) {
+        skipLoadRef.current = null;
+      } else {
+        api
+          .getMessages(conversationId)
+          .then(({ messages: saved }) => {
+            setMessages(
+              saved.map((m, i) => ({
+                id: String(m.id ?? `hist-${i}`),
+                role: m.role as 'user' | 'assistant',
+                content: m.content,
+                annotations: [],
+                createdAt: m.created_at ? new Date(m.created_at) : new Date(),
+              })),
+            );
+          })
+          .catch(console.error);
+      }
 
       // Also preload side‑panel data
       refreshThreads(conversationId);
@@ -91,6 +98,7 @@ export function useChatStream() {
           const conv = await api.createConversation('New Chat');
           cid = conv.id;
           cidRef.current = cid;
+          skipLoadRef.current = cid;
           setConversationId(cid);
           addConversation(conv);
         } catch (err) {
