@@ -531,13 +531,16 @@ def update_profile_entry(
             put_connection(conn)
 
 
-def delete_profile_entry(entry_id: int) -> bool:
-    """Delete a profile entry by ID."""
+def delete_profile_entry(entry_id: int, user_id: str = "public") -> bool:
+    """Delete a profile entry by ID, only if it belongs to *user_id*."""
     conn = None
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute("DELETE FROM user_profile WHERE id = %s;", (entry_id,))
+        cur.execute(
+            "DELETE FROM user_profile WHERE id = %s AND user_id = %s;",
+            (entry_id, user_id),
+        )
         ok = cur.rowcount > 0
         conn.commit(); cur.close()
         return ok
