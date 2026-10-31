@@ -83,8 +83,10 @@ class TestThreadResolution:
     """Thread resolution with DB disabled (in-memory only)."""
 
     def test_disabled_returns_empty(self):
+        from topic_threading import resolve_thread
+
         emb = np.random.randn(768).astype(np.float32)
-        result = ThreadResolution(thread_id="", is_new=False)
+        result = resolve_thread("conv-1", emb, db_enabled=False)
         assert result.thread_id == ""
         assert not result.is_new
 

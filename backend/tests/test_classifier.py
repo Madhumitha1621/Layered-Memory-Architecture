@@ -70,6 +70,7 @@ class TestGreetingFastPath:
         # Whether it's a greeting or general both are acceptable here;
         # the key assertion is that .completion was called.
         mock_completion.assert_called_once()
+        assert result["source"] == "llm"
 
 
 # ─── Profile statement fast-path ─────────────────────────────────────────

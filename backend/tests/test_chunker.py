@@ -222,6 +222,7 @@ def test_semantic_fallback_when_too_few_sentences(monkeypatch):
     with patch.object(chunker, "_embed", side_effect=AssertionError("should not embed")) as mock_embed:
         chunks = chunker.chunk_text("Only one sentence here.", chunk_size=200, chunk_overlap=20)
     assert chunks == ["Only one sentence here."]
+    mock_embed.assert_not_called()
 
 
 def test_semantic_fallback_on_embed_error(monkeypatch):

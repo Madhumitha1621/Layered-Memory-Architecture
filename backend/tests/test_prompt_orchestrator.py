@@ -155,7 +155,6 @@ def test_frame_order_system_greeting_profile_rag_qa_history_user():
         similar_qa_context="QA context",
         curated_history=history,
     )
-    roles_and_snippets = [(m["role"], m["content"][:20]) for m in msgs]
     # All system messages first, then history, then user query
     system_indices = [i for i, m in enumerate(msgs) if m["role"] == "system"]
     history_indices = [i for i, m in enumerate(msgs) if m["content"] == "earlier question"]
