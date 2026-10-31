@@ -1057,9 +1057,11 @@ def chat_stream(request: ChatRequest):
     """
     try:
         p = run_pipeline(request)
-    except Exception as exc:
-        logger.error("Pipeline error in chat_stream: %s", exc)
-        raise HTTPException(status_code=500, detail=str(exc))
+    except Exception:
+        # Log the full error server-side; exception text (e.g. psycopg2's
+        # "connection to server at ... failed for user ...") must not reach clients.
+        logger.exception("Pipeline error in chat_stream")
+        raise HTTPException(status_code=500, detail="Failed to prepare the response")
     collected: list[str] = []
 
     def event_stream():
