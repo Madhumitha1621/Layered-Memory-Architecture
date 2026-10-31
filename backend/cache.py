@@ -75,14 +75,27 @@ def put(key: str, value, ttl: int | None = None):
 _CLASSIFICATION_TTL = 1800  # 30 minutes
 
 
-def get_classification(query: str) -> dict | None:
-    """Get cached intent classification result."""
-    return get(_key("intent", query.strip().lower()[:200]))
+def _classification_key(query: str, context: list | None) -> str:
+    # The LLM classifies with the recent conversation as context (e.g. a short
+    # follow-up is "continuation" only mid-conversation), so the context is
+    # part of the key.  The full query is hashed: truncating it made distinct
+    # long queries with a shared prefix collide.
+    recent = [
+        (m.get("role", ""), m.get("content", ""))
+        for m in (context or [])[-6:]
+        if isinstance(m, dict)
+    ]
+    return _key("intent", query.strip().lower(), json.dumps(recent))
 
 
-def set_classification(query: str, result: dict) -> None:
+def get_classification(query: str, context: list | None = None) -> dict | None:
+    """Get cached intent classification result for this query + context."""
+    return get(_classification_key(query, context))
+
+
+def set_classification(query: str, result: dict, context: list | None = None) -> None:
     """Cache intent classification (30 min TTL)."""
-    put(_key("intent", query.strip().lower()[:200]), result, ttl=_CLASSIFICATION_TTL)
+    put(_classification_key(query, context), result, ttl=_CLASSIFICATION_TTL)
 
 
 # ── Embedding cache ───────────────────────────────────────────────────────

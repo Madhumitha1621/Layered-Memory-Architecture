@@ -16,8 +16,8 @@ import types
 
 # Stub out the cache module
 cache_stub = types.ModuleType("cache")
-cache_stub.get_classification = lambda q: None
-cache_stub.set_classification = lambda q, r: None
+cache_stub.get_classification = lambda q, ctx=None: None
+cache_stub.set_classification = lambda q, r, ctx=None: None
 sys.modules.setdefault("cache", cache_stub)
 
 from llm.classifier import (
