@@ -1,3 +1,15 @@
+# ── Stage 1: build the React frontend ──────────────────────────────
+# frontend/dist is gitignored, so it can't be copied from the build context
+# of a fresh clone; build it here instead.
+FROM node:20-bookworm-slim AS frontend
+
+WORKDIR /frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
+# ── Stage 2: Python app ────────────────────────────────────────────
 FROM python:3.12.2-slim-bookworm
 
 WORKDIR /app
@@ -27,7 +39,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project files
 COPY backend/ ./backend/
 COPY knowledge/ ./knowledge/
-COPY frontend/dist/ ./frontend/dist/
+COPY --from=frontend /frontend/dist/ ./frontend/dist/
 
 EXPOSE 8000
 

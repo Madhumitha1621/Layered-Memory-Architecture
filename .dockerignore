@@ -19,13 +19,13 @@ backend/tests/
 .DS_Store
 *.bak
 
-# Docs (keep README.md — referenced by pyproject.toml)
+# Docs (keep README.md — referenced by pyproject.toml).
+# knowledge/ is NOT ignored: the Dockerfile copies it (it's the RAG corpus).
 ARCHITECTURE.md
-knowledge/
 
-# Frontend source (dist is copied explicitly in Dockerfile)
+# Frontend: built inside the image (see Dockerfile stage 1)
 frontend/node_modules/
-frontend/src/
+frontend/dist/
 frontend/.next/
 
 # Stale artifacts (removed)
