@@ -11,7 +11,7 @@
  *  - Profile injection badge
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Copy, Check, Bot, UserIcon, ChevronDown, RefreshCw, ThumbsUp, ThumbsDown } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -48,9 +48,13 @@ export default function AIMessage({ message, isStreaming, isLast, onReload }: Pr
   const isUser = message.role === 'user';
 
   const copyText = useCallback(() => {
-    navigator.clipboard.writeText(message.content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    navigator.clipboard
+      .writeText(message.content)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(console.error);
   }, [message.content]);
 
   // ── Parse annotations into stages + final metadata ──────────────────
@@ -167,7 +171,7 @@ export default function AIMessage({ message, isStreaming, isLast, onReload }: Pr
               remarkPlugins={[remarkGfm]}
               rehypePlugins={[rehypeHighlight]}
               components={{
-                pre: ({ children, ...props }) => (
+                pre: ({ node: _node, children, ...props }) => (
                   <CodeBlock {...props}>{children}</CodeBlock>
                 ),
               }}
@@ -307,12 +311,19 @@ function ActionButton({ onClick, children }: { onClick: () => void; children: Re
 
 function CodeBlock({ children, ...props }: React.HTMLAttributes<HTMLPreElement>) {
   const [copied, setCopied] = useState(false);
+  const preRef = useRef<HTMLPreElement>(null);
 
   const handleCopy = () => {
-    const text = (children as any)?.props?.children || '';
-    navigator.clipboard.writeText(typeof text === 'string' ? text : String(text));
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    // Read the rendered text: with rehype-highlight the code children are
+    // an array of span elements, not a plain string.
+    const text = preRef.current?.innerText ?? '';
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(console.error);
   };
 
   const childClass = (children as any)?.props?.className || '';
@@ -333,7 +344,7 @@ function CodeBlock({ children, ...props }: React.HTMLAttributes<HTMLPreElement>)
           <span className="text-2xs">{copied ? 'Copied!' : 'Copy'}</span>
         </button>
       </div>
-      <pre {...props} className="!mt-0 !rounded-t-none !border-0">
+      <pre {...props} ref={preRef} className="!mt-0 !rounded-t-none !border-0">
         {children}
       </pre>
     </div>
