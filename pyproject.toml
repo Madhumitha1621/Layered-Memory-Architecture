@@ -37,6 +37,7 @@ openai    = ["openai>=1.0.0"]
 anthropic = ["anthropic>=0.20.0"]
 cache     = ["redis>=5.0.0"]
 gpu       = ["torch>=2.0.0"]
+dev       = ["pytest>=8.0", "httpx>=0.27", "ruff>=0.6"]
 all       = ["rag-chat[cerebras,openai,anthropic,cache,gpu]"]
 
 [project.scripts]
@@ -45,9 +46,11 @@ rag-chat = "backend.cli:main"
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "UP", "W"]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "backend/llm/providers/*.py" = ["F401"]
 
 [tool.mypy]
