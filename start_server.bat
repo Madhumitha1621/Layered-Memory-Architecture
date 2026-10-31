@@ -1,5 +1,5 @@
 @echo off
-echo Starting RAG Chat (v4.1.0)...
+echo Starting RAG Chat (v6.0.0)...
 echo.
 echo Tip: first startup downloads the embedding model (~440MB) and caches it.
 echo      Use "python backend\cli.py ingest" to index your knowledge base files.
