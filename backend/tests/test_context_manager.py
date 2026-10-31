@@ -187,3 +187,28 @@ class TestComputeHistoryBudget:
             response_reserve=2000,
         )
         assert budget == 6000
+
+
+# ─── _build_transcript (summarizer input budget) ──────────────────────────
+
+class TestBuildTranscriptBudget:
+    def test_keeps_newest_overflow_when_over_budget(self):
+        from context_manager import _MAX_SUMMARIZER_INPUT_TOKENS, _build_transcript
+
+        # Each message ~250 tokens; 40 of them far exceed the summarizer budget
+        msgs = [{"role": "user", "content": f"m{i:02d} " + "x" * 1000} for i in range(40)]
+        transcript = _build_transcript(None, msgs)
+
+        # The newest overflow message (adjacent to the verbatim tail) survives
+        assert "m39 " in transcript
+        assert "m00 " not in transcript
+        assert "earlier message(s) omitted" in transcript
+        # Kept messages remain in chronological order
+        assert transcript.index("m38 ") < transcript.index("m39 ")
+        assert len(transcript) // 4 <= _MAX_SUMMARIZER_INPUT_TOKENS + 50
+
+    def test_everything_fits_unchanged_order(self):
+        from context_manager import _build_transcript
+
+        msgs = [{"role": "user", "content": "a"}, {"role": "assistant", "content": "b"}]
+        assert _build_transcript(None, msgs) == "User: a\nAssistant: b"

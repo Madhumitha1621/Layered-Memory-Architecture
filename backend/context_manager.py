@@ -191,8 +191,13 @@ def _build_transcript(
 
     If an existing summary exists, it is prepended as seed context so the
     new summary progressively refines prior knowledge rather than starting
-    fresh each time.  Messages are included in full until the transcript
-    token budget is reached.
+    fresh each time.
+
+    When the overflow exceeds the transcript budget, the *newest* overflow
+    messages are kept and the oldest dropped.  The overflow sits directly
+    before the verbatim recent tail, so dropping its newer end would leave a
+    gap in the middle of the conversation that neither the summary nor the
+    tail covers.
     """
     parts: list[str] = []
     used_tokens = 0
@@ -207,8 +212,10 @@ def _build_transcript(
         parts.append(seed)
         used_tokens += seed_tokens
 
-    # Add messages until we hit the transcript budget
-    for m in overflow_messages:
+    # Walk newest → oldest until we hit the transcript budget
+    kept: list[str] = []
+    omitted = 0
+    for i, m in enumerate(reversed(overflow_messages)):
         line = f"{m['role'].title()}: {m['content']}"
         line_tokens = estimate_tokens(line)
         if used_tokens + line_tokens > _MAX_SUMMARIZER_INPUT_TOKENS:
@@ -216,11 +223,17 @@ def _build_transcript(
                 0, (_MAX_SUMMARIZER_INPUT_TOKENS - used_tokens) * _CHARS_PER_TOKEN
             )
             if remaining_chars > 50:
-                parts.append(f"{m['role'].title()}: {m['content'][:remaining_chars]}…")
+                # Keep the end of the message — it's closest to what follows
+                kept.append(f"{m['role'].title()}: …{m['content'][-remaining_chars:]}")
+                i += 1
+            omitted = len(overflow_messages) - i
             break
-        parts.append(line)
+        kept.append(line)
         used_tokens += line_tokens
 
+    if omitted:
+        parts.append(f"[{omitted} earlier message(s) omitted]")
+    parts.extend(reversed(kept))
     return "\n".join(parts)
 
 
