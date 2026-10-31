@@ -39,7 +39,7 @@ from typing import Any, Optional
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -179,8 +179,15 @@ runtime_config = _RuntimeConfig()
 #  Request / response models
 # ---------------------------------------------------------------------------
 
+# Upper bounds for client-controlled sizes.  The API is unauthenticated, so an
+# unbounded k / limit / query length lets any caller pin the CPU (reranker,
+# embedding model) or pull whole tables in one request.
+MAX_QUERY_CHARS = 16_000
+MAX_SEARCH_K = 50
+
+
 class ChatRequest(BaseModel):
-    user_query: str
+    user_query: str = Field(min_length=1, max_length=MAX_QUERY_CHARS)
     conversation_id: str | None = None
     tags: list[str] | None = None
     user_id: str = settings.DEFAULT_USER_ID
@@ -731,7 +738,7 @@ def create_conversation(req: NewConversationRequest):
 
 
 @app.get("/conversations")
-def list_conversations(limit: int = 50):
+def list_conversations(limit: int = Query(50, ge=1, le=500)):
     if not DB_ENABLED:
         return {"conversations": [], "count": 0}
     convs = query_db.list_conversations(limit=limit)
@@ -739,7 +746,10 @@ def list_conversations(limit: int = 50):
 
 
 @app.get("/conversations/search")
-def search_conversations(q: str, limit: int = 20):
+def search_conversations(
+    q: str = Query(max_length=500),
+    limit: int = Query(20, ge=1, le=100),
+):
     """Full-text search across all conversation messages."""
     if not DB_ENABLED:
         return {"conversations": [], "count": 0}
@@ -758,7 +768,7 @@ def get_conversation(conversation_id: str):
 
 
 @app.get("/conversations/{conversation_id}/messages")
-def get_messages(conversation_id: str, limit: int = 200):
+def get_messages(conversation_id: str, limit: int = Query(200, ge=1, le=1000)):
     if not DB_ENABLED:
         return {"conversation_id": conversation_id, "messages": [], "count": 0}
     msgs = query_db.get_conversation_messages(conversation_id, limit=limit)
@@ -860,7 +870,7 @@ def get_thread_detail(conversation_id: str, thread_id: str):
 
 
 @app.get("/conversations/{conversation_id}/insights")
-def list_insights(conversation_id: str, limit: int = 50):
+def list_insights(conversation_id: str, limit: int = Query(50, ge=1, le=500)):
     """List research insights for a conversation."""
     if not DB_ENABLED:
         return {"insights": [], "count": 0}
@@ -878,7 +888,10 @@ def list_concepts(conversation_id: str):
 
 
 @app.get("/concepts/search")
-def search_concepts(q: str, k: int = 10):
+def search_concepts(
+    q: str = Query(max_length=MAX_QUERY_CHARS),
+    k: int = Query(10, ge=1, le=MAX_SEARCH_K),
+):
     """Semantic search across all concept links."""
     if not DB_ENABLED:
         raise HTTPException(503, "Database not available")
@@ -889,8 +902,8 @@ def search_concepts(q: str, k: int = 10):
 
 @app.get("/insights/search")
 def search_insights(
-    q: str,
-    k: int = 10,
+    q: str = Query(max_length=MAX_QUERY_CHARS),
+    k: int = Query(10, ge=1, le=MAX_SEARCH_K),
     type: str | None = None,
     conversation_id: str | None = None,
 ):
@@ -954,9 +967,9 @@ def delete_profile_entry(entry_id: int):
 # ═══════════════════════════════════════════════════════════════════════════
 
 class RetrievalTestRequest(BaseModel):
-    query: str
-    k: int = settings.RETRIEVAL_K
-    min_similarity: float = 0.0
+    query: str = Field(min_length=1, max_length=MAX_QUERY_CHARS)
+    k: int = Field(settings.RETRIEVAL_K, ge=1, le=MAX_SEARCH_K)
+    min_similarity: float = Field(0.0, ge=0.0, le=1.0)
 
 
 @app.post("/retrieval/test")
