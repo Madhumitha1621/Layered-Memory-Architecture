@@ -933,10 +933,16 @@ def add_profile_entry(req: ProfileEntryRequest):
 def update_profile(entry_id: int, req: ProfileEntryRequest):
     if not DB_ENABLED:
         raise HTTPException(503, "Database not available")
-    pid = query_db.update_profile_entry(req.key, req.value, category=req.category, user_id=req.user_id)
-    if not pid:
+    status = query_db.update_profile_entry_by_id(
+        entry_id, req.key, req.value, category=req.category, user_id=req.user_id,
+    )
+    if status == "not_found":
+        raise HTTPException(404, "Profile entry not found")
+    if status == "conflict":
+        raise HTTPException(409, f"Profile key '{req.key}' already exists")
+    if status != "updated":
         raise HTTPException(500, "Failed to update profile entry")
-    return {"id": pid, "key": req.key, "value": req.value, "category": req.category, "user_id": req.user_id}
+    return {"id": entry_id, "key": req.key, "value": req.value, "category": req.category, "user_id": req.user_id}
 
 
 @app.delete("/profile/{entry_id}")

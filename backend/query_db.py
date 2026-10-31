@@ -531,6 +531,41 @@ def update_profile_entry(
             put_connection(conn)
 
 
+def update_profile_entry_by_id(
+    entry_id: int,
+    key: str,
+    value: str,
+    category: str = "general",
+    user_id: str = "public",
+) -> str:
+    """Update an existing profile entry in place (key may change).
+
+    Returns ``"updated"``, ``"not_found"`` (no such entry for this user),
+    ``"conflict"`` (the new key already exists for this user) or ``"error"``.
+    """
+    conn = None
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE user_profile "
+            "SET key = %s, value = %s, category = %s, updated_at = CURRENT_TIMESTAMP "
+            "WHERE id = %s AND user_id = %s RETURNING id;",
+            (key.strip(), value.strip(), category.strip(), entry_id, user_id),
+        )
+        found = cur.fetchone() is not None
+        conn.commit(); cur.close()
+        return "updated" if found else "not_found"
+    except psycopg2.errors.UniqueViolation:
+        return "conflict"
+    except Exception as e:
+        logger.error(f"Error updating profile entry {entry_id}: {e}")
+        return "error"
+    finally:
+        if conn is not None:
+            put_connection(conn)
+
+
 def delete_profile_entry(entry_id: int) -> bool:
     """Delete a profile entry by ID."""
     conn = None
