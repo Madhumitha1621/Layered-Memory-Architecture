@@ -42,7 +42,7 @@ export default function ProfileModal() {
     setAdding(false);
   };
 
-  const categories = ['personal', 'professional', 'preferences', 'health', 'education', 'other'];
+  const categories = ['general', 'personal', 'professional', 'preferences', 'health', 'education', 'other'];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
