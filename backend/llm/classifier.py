@@ -60,7 +60,7 @@ def classify_intent(
     query_lower = user_query.strip().lower()
 
     # ── Cache check ─────────────────────────────────────────────────────
-    cached = cache.get_classification(user_query)
+    cached = cache.get_classification(user_query, conversation_context)
     if cached:
         logger.info(f"Cache hit: intent={cached['intent']}")
         cached.setdefault("source", "cache")
@@ -153,7 +153,7 @@ def classify_intent(
             intent = "general"
 
         result = {"intent": intent, "confidence": confidence, "source": "llm"}
-        cache.set_classification(user_query, result)
+        cache.set_classification(user_query, result, conversation_context)
         return result
 
     except Exception as e:
