@@ -169,12 +169,20 @@ def resolve_thread(
     norm = np.linalg.norm(q_emb)
     initial_centroid = q_emb / norm if norm > 0 else q_emb
 
-    query_db.create_thread(
+    # conversation_threads.conversation_id references conversations(id), and the
+    # conversation row is otherwise only created later, in the persist step.
+    query_db.ensure_conversation_exists(conversation_id)
+    created = query_db.create_thread(
         thread_id=thread_id,
         conversation_id=conversation_id,
         centroid_embedding=initial_centroid,
         label="",
     )
+    if not created:
+        # Don't hand out an ID for a thread that doesn't exist: insights and
+        # concepts tagged with it would fail their own FK and be lost.
+        logger.warning(f"Thread creation failed for conversation {conversation_id[:8]}…")
+        return ThreadResolution(thread_id="", is_new=False)
 
     logger.info(f"New thread: {thread_id[:8]}… (conv={conversation_id[:8]}…)")
     return ThreadResolution(

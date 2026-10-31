@@ -109,3 +109,35 @@ class TestThreadResolution:
         assert r.is_new
         assert r.similarity == 0.85
         assert r.message_count == 5
+
+
+class TestResolveThreadCreation:
+    """New-thread path: conversation row must exist; failures yield no thread ID."""
+
+    def _resolve(self, create_ok):
+        from unittest.mock import MagicMock, patch
+
+        import query_db
+        from topic_threading import resolve_thread
+
+        calls = []
+        qdb = MagicMock()
+        qdb.find_nearest_thread.return_value = None
+        qdb.count_threads.return_value = 0
+        qdb.ensure_conversation_exists.side_effect = lambda *a, **k: calls.append("ensure")
+        qdb.create_thread.side_effect = lambda **k: calls.append("create") or create_ok
+        with patch.multiple(query_db, **{n: getattr(qdb, n) for n in (
+                "find_nearest_thread", "count_threads",
+                "ensure_conversation_exists", "create_thread")}):
+            result = resolve_thread("conv-1", np.ones(4, dtype=np.float32))
+        return result, calls
+
+    def test_conversation_row_created_before_thread(self):
+        result, calls = self._resolve(create_ok=True)
+        assert calls == ["ensure", "create"]
+        assert result.thread_id and result.is_new
+
+    def test_failed_create_returns_no_thread_id(self):
+        result, _ = self._resolve(create_ok=False)
+        assert result.thread_id == ""
+        assert result.is_new is False
