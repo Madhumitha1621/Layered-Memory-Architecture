@@ -974,6 +974,59 @@ def export_conversation(conversation_id: str) -> dict | None:
     return conv
 
 
+def delete_last_exchange(conversation_id: str) -> int:
+    """Delete the most recent user message, its reply, and the stored Q&A row.
+
+    Used by regenerate: the pipeline re-persists the user message and the new
+    answer, so leaving the old user message (or its user_queries row with the
+    stale answer) behind would duplicate it.  Returns the number of chat
+    messages deleted.
+    """
+    conn = None
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT id, content FROM chat_messages
+            WHERE conversation_id = %s AND role = 'user'
+            ORDER BY timestamp DESC, id DESC LIMIT 1;
+        """, (conversation_id,))
+        last_user = cur.fetchone()
+        if last_user is None:
+            cur.close()
+            return 0
+        last_user_id, last_user_text = last_user
+        # The last user message and anything after it (its reply, if any)
+        cur.execute("""
+            DELETE FROM chat_messages
+            WHERE conversation_id = %s AND id >= %s
+            RETURNING id;
+        """, (conversation_id, last_user_id))
+        deleted = len(cur.fetchall())
+        cur.execute("""
+            DELETE FROM user_queries
+            WHERE id = (
+                SELECT id FROM user_queries
+                WHERE conversation_id = %s AND query_text = %s
+                ORDER BY timestamp DESC, id DESC LIMIT 1
+            );
+        """, (conversation_id, last_user_text))
+        if deleted:
+            cur.execute("""
+                UPDATE conversations
+                SET message_count = GREATEST(COALESCE(message_count, 0) - %s, 0)
+                WHERE id = %s;
+            """, (deleted, conversation_id))
+        conn.commit(); cur.close()
+        return deleted
+    except Exception as e:
+        logger.error(f"Error deleting last exchange: {e}")
+        return 0
+    finally:
+        if conn is not None:
+            put_connection(conn)
+
+
 def delete_last_assistant_message(conversation_id: str) -> bool:
     """Delete the most recent assistant message in a conversation."""
     conn = None

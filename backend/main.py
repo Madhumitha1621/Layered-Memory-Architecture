@@ -812,7 +812,7 @@ def get_conversation_state(conversation_id: str):
 
 @app.post("/chat/regenerate")
 def regenerate_last_response(req: RegenerateRequest):
-    """Delete the last assistant message and re-run the pipeline."""
+    """Delete the last exchange and re-run the pipeline on the same user message."""
     if not DB_ENABLED:
         raise HTTPException(503, "Database not available")
     msgs = query_db.get_conversation_messages(req.conversation_id, limit=10000)
@@ -820,7 +820,8 @@ def regenerate_last_response(req: RegenerateRequest):
     if not user_msgs:
         raise HTTPException(400, "No user messages to regenerate from")
     last_user_msg = user_msgs[-1]["content"]
-    query_db.delete_last_assistant_message(req.conversation_id)
+    # Remove the user message too: chat() persists it again with the new answer
+    query_db.delete_last_exchange(req.conversation_id)
     return chat(ChatRequest(
         user_query=last_user_msg,
         conversation_id=req.conversation_id,
