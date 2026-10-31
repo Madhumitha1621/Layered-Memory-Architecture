@@ -170,6 +170,16 @@ export default function AIMessage({ message, isStreaming, isLast, onReload }: Pr
                 pre: ({ children, ...props }) => (
                   <CodeBlock {...props}>{children}</CodeBlock>
                 ),
+                a: ({ node: _node, ...props }) => (
+                  <a {...props} target="_blank" rel="noopener noreferrer" />
+                ),
+                // Never auto-load images from model output (prevents data
+                // exfiltration via image URLs); render them as links instead.
+                img: ({ src, alt }) => (
+                  <a href={src} target="_blank" rel="noopener noreferrer">
+                    {alt || src}
+                  </a>
+                ),
               }}
             >
               {message.content}
