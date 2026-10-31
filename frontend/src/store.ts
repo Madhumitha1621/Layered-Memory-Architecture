@@ -54,7 +54,10 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   conversations: [],
   conversationId: null,
 
-  setConversationId: (id) => set({ conversationId: id }),
+  // Clear side-panel data so the previous conversation's threads/insights/
+  // concepts are not shown while the new conversation's data loads.
+  setConversationId: (id) =>
+    set({ conversationId: id, threads: [], insights: [], concepts: [] }),
 
   addConversation: (c) =>
     set((s) => ({ conversations: [c, ...s.conversations] })),
@@ -162,7 +165,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   refreshThreads: async (conversationId) => {
     try {
       const { threads } = await api.getThreads(conversationId);
-      set({ threads });
+      // Ignore responses for a conversation that is no longer active
+      if (get().conversationId === conversationId) set({ threads });
     } catch (e) {
       console.error('Failed to refresh threads', e);
     }
@@ -171,7 +175,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   refreshInsights: async (conversationId) => {
     try {
       const { insights } = await api.getInsights(conversationId);
-      set({ insights });
+      // Ignore responses for a conversation that is no longer active
+      if (get().conversationId === conversationId) set({ insights });
     } catch (e) {
       console.error('Failed to refresh insights', e);
     }
@@ -180,7 +185,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   refreshConcepts: async (conversationId) => {
     try {
       const { concepts } = await api.getConcepts(conversationId);
-      set({ concepts });
+      // Ignore responses for a conversation that is no longer active
+      if (get().conversationId === conversationId) set({ concepts });
     } catch (e) {
       console.error('Failed to refresh concepts', e);
     }

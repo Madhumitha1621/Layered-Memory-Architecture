@@ -6,7 +6,6 @@
  * /conversations/{id}/threads endpoint.
  */
 
-import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   GitBranch,
@@ -24,18 +23,9 @@ export default function AIThreadPanel() {
     conversationId,
     threads,
     insights,
-    refreshThreads,
-    refreshInsights,
   } = useChatStore();
 
   const [expandedThread, setExpandedThread] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (conversationId) {
-      refreshThreads(conversationId);
-      refreshInsights(conversationId);
-    }
-  }, [conversationId, refreshThreads, refreshInsights]);
 
   if (!conversationId) {
     return (
